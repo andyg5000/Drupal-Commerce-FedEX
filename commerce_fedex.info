@@ -1,0 +1,7 @@
+name = Commerce FedEx
+description = Provide shipping calculations for Drupal Commerce
+package = Commerce (shipping)
+dependencies[] = commerce
+dependencies[] = commerce_shipping
+dependencies[] = commerce_physical
+core = 7.x

@@ -1,0 +1,127 @@
+<?php
+
+/**
+ * @file
+ * Defines the USPS shipping method and services for Drupal Commerce.
+ */
+
+/**
+ * Implements hook_menu().
+ */
+function commerce_fedex_menu() {
+  $items = array();
+  $items['admin/commerce/config/shipping/methods/fedex/edit'] = array(
+    'title' => 'Edit',
+    'description' => 'Adjust FedEx shipping settings.',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('commerce_fedex_settings_form'),
+    'access arguments' => array('administer shipping'),
+    'file' => 'includes/commerce_fedex.admin.inc',
+    'type' => MENU_LOCAL_TASK,
+    'context' => MENU_CONTEXT_INLINE,
+    'weight' => 0,
+  );
+
+  return $items;
+}
+
+/**
+ * Implements hook_commerce_shipping_method_info().
+ */
+function commerce_fedex_commerce_shipping_method_info() {
+  $shipping_methods = array();
+
+  $shipping_methods['fedex'] = array(
+    'title' => t('FedEx'),
+    'description' => t('Quote rates from FedEx'),
+  );
+
+  return $shipping_methods;
+}
+
+/**
+ * Implements hook_commerce_shipping_service_info().
+ */
+function commerce_fedex_commerce_shipping_service_info() {
+  $shipping_services = array();
+
+  $available_services = commerce_fedex_shipping_service_types();
+  $selected_services = variable_get('commerce_fedex_services', array());
+  foreach ($selected_services as $id => $val) {
+    if(!empty($val)){
+      $service = $available_services[$id];
+      $shipping_services[drupal_strtolower($id)] = array(
+        'title' => $service,
+        'description' => $service,
+        'display_title' => $service,
+        'shipping_method' => 'fedex',
+        'price_component' => 'shipping',
+        'callbacks' => array(
+          'rate' => 'commerce_fedex_service_rate_order',
+        )
+      );
+    }
+  }
+  return $shipping_services;
+}
+
+function commerce_fedex_service_rate_order($shipping_service, $order) {
+  // First attempt to recover cached shipping rates for the current order.
+  $rates = commerce_shipping_rates_cache_get('fedex', $order, 0);
+  // If no rates were recovered from the cache or the cached rates are over one minute old...
+  if (!$rates) {
+    $rates = array();
+    module_load_include('inc', 'commerce_fedex', 'includes/commerce_fedex_soap_client');
+    commerce_fedex_create_soap_request($order);
+  }
+}
+
+
+function commerce_fedex_shipping_service_types() {
+  return array(
+    'FEDEX_GROUND' => t('FedEx Ground'),
+    'FEDEX_2_DAY' => t('FedEx 2 Day'),
+    'FEDEX_2_DAY_AM' => t('FedEx 2 Day AM'),
+    'FEDEX_EXPRESS_SAVER' => t('FedEx Express Saver'),
+    'FIRST_OVERNIGHT' => t('FedEx First Overnight'),
+    'GROUND_HOME_DELIVERY' => t('FedEx Ground Home Delivery'),
+    'INTERNATIONAL_ECONOMY' => t('FedEx International Economy'),
+    'INTERNATIONAL_FIRST' => t('FedEx International First'),
+    'INTERNATIONAL_PRIORITY' => t('FedEx International Priority'),
+    'PRIORITY_OVERNIGHT' => t('FedEx Priority Overnight'),
+    'SMART_POST' => t('FedEx Smart Post'),
+    'STANDARD_OVERNIGHT' => t('FedEx Standard Overnight'),
+  );
+}
+
+function commerce_fedex_package_types() {
+  return array(
+    'FEDEX_BOX' => t('FedEx Box'),
+    'FEDEX_TUBE' => t('FedEx Tube'),
+    'FEDEX_PAK' => t('FedEx Pak'),
+    'FEDEX_ENVELOPE' => t('FedEx Envelope'),
+    'YOUR_PACKAGING' => t('FedEx Customer Supplied Packaging'),
+  );
+}
+
+function commerce_fedex_settings_fields() {
+  return array(
+    'commerce_fedex_key',
+    'commerce_fedex_password',
+    'commerce_fedex_account_number',
+    'commerce_fedex_meter_number',
+    'commerce_fedex_company_name',
+    'commerce_fedex_address_line_1',
+    'commerce_fedex_address_line_2',
+    'commerce_fedex_city',
+    'commerce_fedex_state',
+    'commerce_fedex_postal_code',
+    'commerce_fedex_country_code',
+    'commerce_fedex_services',
+    'commerce_fedex_default_package_type',
+    'commerce_fedex_default_package_size_length',
+    'commerce_fedex_default_package_size_width',
+    'commerce_fedex_default_package_size_height',
+    'commerce_fedex_shipto_residential',
+  );
+}

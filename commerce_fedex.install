@@ -1,0 +1,15 @@
+<?php
+
+/**
+ * @file
+ * Handles installation for Commerce FedEx module.
+ */
+
+/**
+ * Implements hook_uninstall().
+ */
+function commerce_fedex_uninstall() {
+  foreach (commerce_fedex_settings_fields() as $var) {
+    variable_del($var);
+  }
+}
